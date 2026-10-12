@@ -1,0 +1,51 @@
+@import "tailwindcss";
+
+:root {
+  --color-tan: #D2B48C;
+  --color-black: #000000;
+  --color-beige: #F5F5DC;
+  --color-red: #8B0000;
+  --color-silver: #C0C0C0;
+
+  --bg-app: #F5F5DC;
+  --text-app: #000000;
+  --surface-dial: rgba(0, 0, 0, 0.45);
+  --border-dial: rgba(210, 180, 140, 0.5);
+  --input-bg: rgba(255, 255, 255, 0.85);
+  --user-bubble: #000000;
+  --user-bubble-text: #F5F5DC;
+}
+
+html.dark {
+  --bg-app: #000000;
+  --text-app: #F5F5DC;
+  --surface-dial: rgba(25, 25, 25, 0.7);
+  --border-dial: rgba(139, 0, 0, 0.6);
+  --input-bg: rgba(20, 20, 20, 0.85);
+  --user-bubble: #D2B48C;
+  --user-bubble-text: #000000;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background-color: var(--bg-app);
+  color: var(--text-app);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+@keyframes flashRed {
+  0%, 100% { fill: var(--surface-dial); }
+  25%, 75% { fill: #8B0000; }
+  50% { fill: var(--surface-dial); }
+}
+
+.flash-sector {
+  animation: flashRed 0.55s ease-in-out;
+}
