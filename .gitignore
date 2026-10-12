@@ -1,0 +1,76 @@
+# Environment variables and local secrets
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.keystore
+*.jks
+keystore*
+secrets/
+private/
+credentials/
+
+# API/provider dumps and local diagnostics (review before force-adding)
+*headers*.txt
+*body*.json
+*response*.json
+*.http.log
+*.debug.log
+logs/
+*.log
+
+# Runtime state and databases
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+*.sqlite-*
+.encryption-key
+data/
+server/data/
+tunnel-client.yaml
+
+# JavaScript/build output
+node_modules/
+dist/
+build/
+coverage/
+.cache/
+.tmp/
+tmp/
+temp/
+
+# Android/Gradle local state and generated artifacts
+.gradle/
+local.properties
+**/build/
+*.apk
+*.aab
+*.apks
+*.dex
+*.class
+*.hprof
+captures/
+
+# Signing and release materials
+*.idsig
+release-signing/
+signing/
+
+# IDE/editor and OS files
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+
+# Termux/local workspace artifacts
+.termux/
+*.bak
+*.swp
+*.swo
+*~
