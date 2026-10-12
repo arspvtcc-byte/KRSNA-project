@@ -35,3 +35,10 @@ After a meaningful task, update PROJECT_STATUS.md with the verified state, chang
 
 ## Environment limitations
 GitHub file edits do not execute Termux commands, build Android APKs, or validate behavior on the user's device. State these limitations plainly and provide exact commands for device-side verification when needed.
+
+## Product identity and reference material
+- KRSNA is the new project's product name. Do not rename this project or its app because a user-provided reference prompt mentions ARX, NOVA, KT2, or another project.
+- The current user requirements and memory-engine reference are documented in docs/PRODUCT_SPEC.md.
+- Treat that spec as requirements and proposals, not proof of existing implementation. The user is still defining the two-server/tunnel architecture.
+- Do not invent the eight mode scripts, exact palette/font, profile questions, server responsibilities, or tunnel technology. Wait for user-provided details or mark them explicitly as unresolved.
+- Do not modify unrelated repositories or legacy projects as a side effect.
