@@ -13,10 +13,10 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Set up Node.js
+      - name: Set up Node.js 22
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 22
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -25,7 +25,7 @@ jobs:
           java-version: '17'
           cache: 'gradle'
 
-      - name: Install Node Dependencies (Headless / Safe)
+      - name: Install Node Dependencies
         run: |
           npm install --ignore-scripts --no-optional
 
