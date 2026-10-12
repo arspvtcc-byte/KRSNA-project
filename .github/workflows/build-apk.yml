@@ -23,11 +23,9 @@ jobs:
         with:
           distribution: 'zulu'
           java-version: '17'
+          cache: 'gradle'
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Install Dependencies
+      - name: Install Node Dependencies
         run: npm ci || npm install
 
       - name: Build Web Assets & Sync Capacitor
@@ -35,8 +33,13 @@ jobs:
           npm run build
           npx cap sync android
 
+      - name: Grant Execute Permission to Gradlew
+        run: chmod +x android/gradlew
+
       - name: Build Debug APK
         working-directory: android
+        env:
+          ANDROID_HOME: /usr/local/lib/android/sdk
         run: ./gradlew assembleDebug --stacktrace
 
       - name: Upload APK Artifact
@@ -44,3 +47,4 @@ jobs:
         with:
           name: krsna-debug-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
