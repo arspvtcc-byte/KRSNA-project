@@ -29,6 +29,9 @@ jobs:
         run: |
           npm install --ignore-scripts --no-optional
 
+      - name: Build Web Assets
+        run: npm run build
+
       - name: Sync Capacitor Android
         run: |
           npx cap sync android
