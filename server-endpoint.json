@@ -1,6 +1,7 @@
 {
-  "httpBase": "http://127.0.0.1:3001",
-  "wsBase": "ws://127.0.0.1:3000",
-  "version": "0.1.0",
-  "status": "online"
+  "http": "https://hostel-colors-referral-mounts.trycloudflare.com",
+  "ws": "wss://hostel-colors-referral-mounts.trycloudflare.com/ws",
+  "httpBase": "https://hostel-colors-referral-mounts.trycloudflare.com",
+  "wsBase": "wss://hostel-colors-referral-mounts.trycloudflare.com/ws",
+  "updated_at": "2026-10-13T00:05:00Z"
 }
