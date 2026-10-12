@@ -50,3 +50,12 @@ Do not paste API keys, tokens, private keys, or full provider response/header du
 
 ## Verification policy
 A GitHub documentation commit confirms only that the documentation was committed. It does not verify Termux installation, server availability, Android compilation, APK installation, or runtime behavior.
+
+## Product requirements captured — 2026-10-12
+- Added [docs/PRODUCT_SPEC.md](docs/PRODUCT_SPEC.md), capturing the user's current KRSNA product, UI/interaction, access-control, logging, profile/settings/update, mode-script, and server-memory requirements.
+- Naming clarification: KRSNA is the new project's product name. Other project names appearing in pasted reference material are references only and must not be treated as KRSNA's identity or as instructions to switch projects.
+- User-described product requirements are recorded as requirements, not evidence of implementation. The reference memory engine's schema and token limits must be adapted after inspecting the actual backend.
+- Confirmed product intent: private Android app for about 2–5 users; one APK, two servers, one tunnel (server roles and tunnel technology remain unconfirmed); eight dial modes: FINANCE, RELATIONSHIP, ACADEMICS, FAMILY, FUTURE, LOST, EMOTIONS, GROWTH.
+- Key UX requirements captured: animated splash; permission gate; rotating/shatter-transition mode dial; same-screen chat transition; expanding five-line composer; thinking animation; Stop/abort; 30-second timeout/cancellation; long-press copy; settings/profile/theme/update controls; default light theme and adapted dark theme.
+- Memory requirements captured: per-user shared profile/digests plus per-user/per-mode isolated memory; original message retention; summaries with coverage markers; bounded facts/digests; retrieval; promotion gate; prompt-injection safeguards; reliable persistence; and strict preflight token accounting. Proposed reference limits are 8,400 input tokens plus up to 1,500 output tokens, with total strictly below 10,000; provider-specific feasibility remains to be verified.
+- No app source, server code, database, tunnel, APK, or runtime behavior was changed or tested by this documentation update.
