@@ -27,7 +27,7 @@ jobs:
 
       - name: Install Node Dependencies
         run: |
-          npm install --ignore-scripts --no-optional
+          npm install --include=optional
 
       - name: Build Web Assets
         run: npm run build
