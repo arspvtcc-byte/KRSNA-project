@@ -30,3 +30,24 @@ Record decisions that affect architecture, security, workflow, or compatibility.
 - Details still to decide/verify: Android application ID, build system, UI framework, server implementation/language, API routes, authentication, provider key storage, network binding, background execution, persistence, model selection/fallback behavior, and distribution/update strategy.
 
 Do not silently convert these proposals into accepted decisions. Confirm them against user requirements and source code first.
+
+## D-004 — KRSNA is the sole current product identity
+- Status: Accepted
+- Date: 2026-10-12
+- Decision: The new app and its system are named KRSNA. Other names appearing in pasted prompts or legacy project discussions are reference material only unless the user explicitly says otherwise.
+- Reason: Avoid cross-project confusion and prevent a copied specification from renaming or redirecting KRSNA work.
+- Consequence: Use KRSNA consistently in project-specific source, UI, docs, package metadata when later confirmed, and server naming. Keep ARX/other legacy projects and upstream dependencies separate.
+
+## D-005 — Capture user requirements before implementation
+- Status: Accepted
+- Date: 2026-10-12
+- Decision: Treat docs/PRODUCT_SPEC.md as the working record of product behavior and memory-engine requirements supplied so far. Distinguish user-confirmed requirements from proposed engineering safeguards and unresolved architecture questions.
+- Reason: The user is still explaining the system; implementation must follow the actual KRSNA design rather than assume roles for the two servers or the tunnel.
+- Consequence: Inspect real source before selecting schemas/frameworks. Do not claim any documented feature is implemented or tested solely because it is in the spec.
+
+## D-006 — Memory-engine design is a reference requirement, not a verified existing implementation
+- Status: Accepted
+- Date: 2026-10-12
+- Decision: Adapt the supplied two-level memory, retrieval, summarization, promotion, isolation, and token-budget design to KRSNA only after inspecting the actual backend.
+- Reason: The supplied prompt is detailed but does not establish the current code, database, tokenizer, or provider request format.
+- Consequence: The 8,400 input / 1,500 output / below-10,000 total limits are proposed starting limits; verify the complete provider-visible request and actual counting method before treating them as enforceable in production.
