@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { FC } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Moon, Sun, RefreshCw, CheckCircle2, User, ChevronRight, ArrowLeft } from 'lucide-react';
+import { X, Moon, Sun, RefreshCw, CheckCircle2, User, ChevronRight, ArrowLeft, Download } from 'lucide-react';
 import type { UserProfile } from '../types';
+import { networkManager } from '../services/network';
 
 interface SettingsOverlayProps {
   isOpen: boolean;
@@ -11,6 +12,8 @@ interface SettingsOverlayProps {
   onToggleTheme: () => void;
 }
 
+const CURRENT_VERSION = '0.1.0-alpha';
+
 export const SettingsOverlay: FC<SettingsOverlayProps> = ({
   isOpen,
   onClose,
@@ -18,7 +21,6 @@ export const SettingsOverlay: FC<SettingsOverlayProps> = ({
   onToggleTheme
 }) => {
   const [currentView, setCurrentView] = useState<'main' | 'profile'>('main');
-
   const [profile, setProfile] = useState<UserProfile>(() => {
     const saved = localStorage.getItem('KRSNA_PROFILE');
     return saved ? JSON.parse(saved) : {
@@ -38,6 +40,31 @@ export const SettingsOverlay: FC<SettingsOverlayProps> = ({
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [checkingUpdate, setCheckingUpdate] = useState(false);
   const [updateMsg, setUpdateMsg] = useState('');
+  const [downloadLink, setDownloadLink] = useState<string | null>(null);
+
+  useEffect(() => {
+    const unsubscribe = networkManager.onMessage((data) => {
+      if (data.type === 'UPDATE_RESPONSE') {
+        setCheckingUpdate(false);
+        if (data.hasUpdate) {
+          const config = networkManager.getConfig();
+          const apkUrl = data.downloadPath ? `${config.httpBase}${data.downloadPath}` : null;
+          setDownloadLink(apkUrl);
+          setUpdateMsg(`New build ${data.latestVersion} available: ${data.releaseNotes || 'Update available'}`);
+        } else {
+          setDownloadLink(null);
+          setUpdateMsg(`KRSNA build is up to date (v${CURRENT_VERSION}).`);
+        }
+      } else if (data.type === 'UPDATE_PUSH') {
+        const config = networkManager.getConfig();
+        const apkUrl = data.downloadPath ? `${config.httpBase}${data.downloadPath}` : null;
+        setDownloadLink(apkUrl);
+        setUpdateMsg(`Urgent update released: ${data.latestVersion}`);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const handleSaveProfile = () => {
     localStorage.setItem('KRSNA_PROFILE', JSON.stringify(profile));
@@ -48,103 +75,129 @@ export const SettingsOverlay: FC<SettingsOverlayProps> = ({
     }, 1200);
   };
 
-  const handleCheckUpdate = () => {
+  const handleCheckUpdate = async () => {
     setCheckingUpdate(true);
     setUpdateMsg('');
-    setTimeout(() => {
+    setDownloadLink(null);
+
+    const sent = networkManager.sendMessage({
+      type: 'CHECK_UPDATE',
+      clientVersion: CURRENT_VERSION,
+      platform: 'android'
+    });
+
+    if (!sent) {
+      try {
+        const config = networkManager.getConfig();
+        const res = await fetch(`${config.httpBase}/api/version`, { cache: 'no-store' });
+        if (res.ok) {
+          const data = await res.json();
+          setCheckingUpdate(false);
+          if (data.latestVersion && data.latestVersion !== CURRENT_VERSION) {
+            setDownloadLink(data.downloadPath ? `${config.httpBase}${data.downloadPath}` : null);
+            setUpdateMsg(`Update available: v${data.latestVersion}`);
+          } else {
+            setUpdateMsg(`KRSNA build is up to date (v${CURRENT_VERSION}).`);
+          }
+          return;
+        }
+      } catch (err) {
+        console.warn('Update check failed over HTTP fallback:', err);
+      }
+
       setCheckingUpdate(false);
-      setUpdateMsg('KRSNA build is up to date (v0.1.0-alpha).');
-    }, 1200);
+      setUpdateMsg('Could not reach KRSNA update hub. Check connection.');
+    }
   };
 
   return (
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-50 flex justify-end overflow-hidden">
-          {/* Backdrop covering the left half with blur */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={() => { setCurrentView('main'); onClose(); }}
-            className="absolute inset-0 bg-black/60 backdrop-blur-md"
+            onClick={onClose}
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm"
           />
 
-          {/* Locked to exactly 50% width */}
           <motion.div
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
-            transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-            className="relative w-1/2 h-full bg-[var(--bg-app)] text-[var(--text-app)] border-l border-[var(--border-dial)] shadow-2xl flex flex-col z-10 select-none"
+            transition={{ type: 'spring', damping: 28, stiffness: 260 }}
+            className="relative w-full max-w-sm sm:max-w-md h-full bg-[var(--bg-main)] border-l border-[var(--border-dial)] shadow-2xl flex flex-col z-10"
           >
-            {/* Drawer Header */}
-            <div className="p-3 sm:p-4 border-b border-[var(--border-dial)] flex items-center justify-between shrink-0">
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b border-[var(--border-dial)]">
               <div className="flex items-center space-x-2">
                 {currentView === 'profile' && (
-                  <button 
-                    onClick={() => setCurrentView('main')} 
-                    className="p-1 rounded-lg hover:bg-[#D2B48C]/30 text-[var(--text-app)] mr-1 active:scale-95 transition-all"
+                  <button
+                    onClick={() => setCurrentView('main')}
+                    className="p-1.5 rounded-lg border border-[var(--border-dial)] hover:bg-[#D2B48C]/20 transition-all"
                   >
-                    <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <ArrowLeft className="w-4 h-4 text-[var(--accent-gold)]" />
                   </button>
                 )}
-                <h2 className="font-black text-xs sm:text-base tracking-wider uppercase truncate">
-                  {currentView === 'profile' ? 'Profile' : 'Settings'}
+                <h2 className="font-serif text-lg font-bold text-[var(--text-primary)]">
+                  {currentView === 'profile' ? 'Profile Setup' : 'Settings'}
                 </h2>
               </div>
-              <button 
-                onClick={() => { setCurrentView('main'); onClose(); }} 
-                className="p-1 rounded-lg hover:bg-[#D2B48C]/30 text-[var(--text-app)] active:scale-95 transition-all"
+              <button
+                onClick={onClose}
+                className="p-1.5 rounded-lg border border-[var(--border-dial)] hover:bg-[#D2B48C]/20 transition-all"
               >
-                <X className="w-4 h-4 sm:w-5 sm:h-5" />
+                <X className="w-4 h-4 text-[var(--accent-gold)]" />
               </button>
             </div>
 
-            {/* View 1: Main Drawer Navigation */}
+            {/* View 1: Main Settings */}
             {currentView === 'main' ? (
-              <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-4">
+              <div className="flex-1 overflow-y-auto p-4 space-y-4">
                 <button
                   onClick={() => setCurrentView('profile')}
-                  className="w-full p-3 rounded-xl bg-[var(--input-bg)] border border-[var(--border-dial)] flex items-center justify-between hover:border-[#8B0000] active:scale-[0.98] transition-all"
+                  className="w-full p-3.5 rounded-2xl bg-[var(--bg-elevated)] border border-[var(--border-dial)] flex items-center justify-between hover:bg-[#D2B48C]/15 active:scale-98 transition-all"
                 >
-                  <div className="flex items-center space-x-2.5">
-                    <div className="w-8 h-8 rounded-lg bg-[#D2B48C]/30 flex items-center justify-center shrink-0">
-                      <User className="w-4 h-4 text-[#8B0000]" />
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2 rounded-xl bg-[#D2B48C]/30 border border-[var(--border-dial)] text-[var(--accent-gold)]">
+                      <User className="w-4 h-4" />
                     </div>
-                    <div className="text-left min-w-0">
-                      <p className="font-bold text-xs sm:text-sm tracking-wide truncate">Profile</p>
-                      <p className="text-[10px] text-[var(--text-app)] opacity-60 truncate">
-                        {profile.name || 'Set attributes'}
+                    <div className="text-left">
+                      <p className="text-xs font-bold uppercase tracking-wider text-[var(--text-primary)]">
+                        User Profile
+                      </p>
+                      <p className="text-[10px] font-mono opacity-60">
+                        {profile.name ? `${profile.name} • Configured` : 'Not configured'}
                       </p>
                     </div>
                   </div>
-                  <ChevronRight className="w-4 h-4 opacity-60 shrink-0" />
+                  <ChevronRight className="w-4 h-4 opacity-50" />
                 </button>
 
-                <hr className="border-[var(--border-dial)] opacity-60" />
-
-                <div className="flex items-center justify-between px-1">
-                  <div>
-                    <p className="text-[11px] sm:text-xs uppercase font-bold tracking-wider">Theme</p>
-                    <p className="text-[10px] opacity-60">{isDark ? 'Dark Mode' : 'Light (Beige)'}</p>
+                <div className="p-3.5 rounded-2xl bg-[var(--bg-elevated)] border border-[var(--border-dial)] flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2 rounded-xl bg-[#D2B48C]/30 border border-[var(--border-dial)] text-[var(--accent-gold)]">
+                      {isDark ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-wider text-[var(--text-primary)]">Theme</p>
+                      <p className="text-[10px] font-mono opacity-60">{isDark ? 'Dark Mode' : 'Light Mode'}</p>
+                    </div>
                   </div>
                   <button
                     onClick={onToggleTheme}
-                    className="p-2 rounded-xl border border-[var(--border-dial)] flex items-center space-x-1.5 text-xs font-semibold bg-[var(--input-bg)] active:scale-95 transition-all"
+                    className="px-3 py-1.5 rounded-xl bg-[#D2B48C]/40 border border-[var(--border-dial)] text-[11px] font-bold active:scale-95 transition-all"
                   >
-                    {isDark ? <Moon className="w-3.5 h-3.5 text-[#8B0000]" /> : <Sun className="w-3.5 h-3.5 text-[#D2B48C]" />}
-                    <span className="text-[10px] sm:text-xs">{isDark ? 'Dark' : 'Beige'}</span>
+                    Switch
                   </button>
                 </div>
 
-                <hr className="border-[var(--border-dial)] opacity-60" />
-
-                <div className="space-y-2 px-1">
+                <div className="p-3.5 rounded-2xl bg-[var(--bg-elevated)] border border-[var(--border-dial)] space-y-2.5">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-[11px] sm:text-xs uppercase font-bold tracking-wider">Build</p>
-                      <p className="text-[9px] font-mono opacity-60">v0.1.0-alpha</p>
+                      <p className="text-[9px] font-mono opacity-60">v{CURRENT_VERSION}</p>
                     </div>
                     <button
                       onClick={handleCheckUpdate}
@@ -156,131 +209,98 @@ export const SettingsOverlay: FC<SettingsOverlayProps> = ({
                     </button>
                   </div>
                   {updateMsg && (
-                    <p className="text-[10px] text-[#8B0000] font-mono leading-tight">{updateMsg}</p>
+                    <p className="text-[10px] text-[var(--accent-gold)] font-mono leading-tight">{updateMsg}</p>
+                  )}
+                  {downloadLink && (
+                    <a
+                      href={downloadLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center space-x-1.5 px-3 py-1.5 mt-1 rounded-xl bg-[var(--accent-gold)] text-black text-[11px] font-bold active:scale-95 transition-all"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Download Latest APK</span>
+                    </a>
                   )}
                 </div>
               </div>
             ) : (
-              /* View 2: Nested Profile Form */
+              /* View 2: Profile Form */
               <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3">
                 <p className="font-bold text-[10px] sm:text-xs uppercase tracking-widest text-[#8B0000] font-mono">
                   10 Parameters
                 </p>
 
                 <div>
-                  <label className="text-[10px] uppercase font-semibold opacity-70">1. Name</label>
-                  <input 
-                    type="text" 
-                    value={profile.name} 
-                    onChange={e => setProfile({...profile, name: e.target.value})} 
-                    className="w-full mt-0.5 p-1.5 bg-[var(--input-bg)] border border-[var(--border-dial)] rounded-lg text-xs text-[var(--text-app)] outline-none"
-                    placeholder="User Name"
+                  <label className="text-[10px] font-bold uppercase tracking-wider block mb-1">Name</label>
+                  <input
+                    type="text"
+                    value={profile.name}
+                    onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+                    className="w-full px-3 py-2 text-xs rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-dial)] focus:outline-none"
+                    placeholder="Your Name"
                   />
                 </div>
 
                 <div>
-                  <label className="text-[10px] uppercase font-semibold opacity-70">2. Age</label>
-                  <input 
-                    type="text" 
-                    value={profile.age} 
-                    onChange={e => setProfile({...profile, age: e.target.value})} 
-                    className="w-full mt-0.5 p-1.5 bg-[var(--input-bg)] border border-[var(--border-dial)] rounded-lg text-xs text-[var(--text-app)] outline-none"
+                  <label className="text-[10px] font-bold uppercase tracking-wider block mb-1">Age</label>
+                  <input
+                    type="text"
+                    value={profile.age}
+                    onChange={(e) => setProfile({ ...profile, age: e.target.value })}
+                    className="w-full px-3 py-2 text-xs rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-dial)] focus:outline-none"
+                    placeholder="Age"
                   />
                 </div>
 
                 <div>
-                  <label className="text-[10px] uppercase font-semibold opacity-70">3. Language</label>
-                  <input 
-                    type="text" 
-                    value={profile.language} 
-                    onChange={e => setProfile({...profile, language: e.target.value})} 
-                    className="w-full mt-0.5 p-1.5 bg-[var(--input-bg)] border border-[var(--border-dial)] rounded-lg text-xs text-[var(--text-app)] outline-none"
+                  <label className="text-[10px] font-bold uppercase tracking-wider block mb-1">Language</label>
+                  <input
+                    type="text"
+                    value={profile.language}
+                    onChange={(e) => setProfile({ ...profile, language: e.target.value })}
+                    className="w-full px-3 py-2 text-xs rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-dial)] focus:outline-none"
+                    placeholder="English / Hindi / Hinglish"
                   />
                 </div>
 
                 <div>
-                  <label className="text-[10px] uppercase font-semibold opacity-70">4. Comm. Style</label>
-                  <input 
-                    type="text" 
-                    value={profile.communicationStyle} 
-                    onChange={e => setProfile({...profile, communicationStyle: e.target.value})} 
-                    className="w-full mt-0.5 p-1.5 bg-[var(--input-bg)] border border-[var(--border-dial)] rounded-lg text-xs text-[var(--text-app)] outline-none"
+                  <label className="text-[10px] font-bold uppercase tracking-wider block mb-1">Personal Goals</label>
+                  <textarea
+                    rows={2}
+                    value={profile.personalGoals}
+                    onChange={(e) => setProfile({ ...profile, personalGoals: e.target.value })}
+                    className="w-full px-3 py-2 text-xs rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-dial)] focus:outline-none resize-none"
+                    placeholder="Your main goals..."
                   />
                 </div>
 
                 <div>
-                  <label className="text-[10px] uppercase font-semibold opacity-70">5. Timezone</label>
-                  <input 
-                    type="text" 
-                    value={profile.timezone} 
-                    onChange={e => setProfile({...profile, timezone: e.target.value})} 
-                    className="w-full mt-0.5 p-1.5 bg-[var(--input-bg)] border border-[var(--border-dial)] rounded-lg text-xs text-[var(--text-app)] outline-none"
+                  <label className="text-[10px] font-bold uppercase tracking-wider block mb-1">Core Values</label>
+                  <textarea
+                    rows={2}
+                    value={profile.coreValues}
+                    onChange={(e) => setProfile({ ...profile, coreValues: e.target.value })}
+                    className="w-full px-3 py-2 text-xs rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-dial)] focus:outline-none resize-none"
+                    placeholder="Core principles & values..."
                   />
                 </div>
 
-                <div>
-                  <label className="text-[10px] uppercase font-semibold opacity-70">6. Goals</label>
-                  <input 
-                    type="text" 
-                    value={profile.personalGoals} 
-                    onChange={e => setProfile({...profile, personalGoals: e.target.value})} 
-                    className="w-full mt-0.5 p-1.5 bg-[var(--input-bg)] border border-[var(--border-dial)] rounded-lg text-xs text-[var(--text-app)] outline-none"
-                  />
+                <div className="pt-2">
+                  <button
+                    onClick={handleSaveProfile}
+                    className="w-full py-2.5 rounded-xl bg-[var(--accent-gold)] text-black font-bold text-xs uppercase tracking-wider flex items-center justify-center space-x-1.5 shadow-md active:scale-95 transition-all"
+                  >
+                    {savedSuccess ? (
+                      <>
+                        <CheckCircle2 className="w-4 h-4" />
+                        <span>Saved</span>
+                      </>
+                    ) : (
+                      <span>Save Profile</span>
+                    )}
+                  </button>
                 </div>
-
-                <div>
-                  <label className="text-[10px] uppercase font-semibold opacity-70">7. Focus</label>
-                  <input 
-                    type="text" 
-                    value={profile.academicFocus} 
-                    onChange={e => setProfile({...profile, academicFocus: e.target.value})} 
-                    className="w-full mt-0.5 p-1.5 bg-[var(--input-bg)] border border-[var(--border-dial)] rounded-lg text-xs text-[var(--text-app)] outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-[10px] uppercase font-semibold opacity-70">8. Financials</label>
-                  <input 
-                    type="text" 
-                    value={profile.financialPriorities} 
-                    onChange={e => setProfile({...profile, financialPriorities: e.target.value})} 
-                    className="w-full mt-0.5 p-1.5 bg-[var(--input-bg)] border border-[var(--border-dial)] rounded-lg text-xs text-[var(--text-app)] outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-[10px] uppercase font-semibold opacity-70">9. Relationships</label>
-                  <input 
-                    type="text" 
-                    value={profile.relationshipStatus} 
-                    onChange={e => setProfile({...profile, relationshipStatus: e.target.value})} 
-                    className="w-full mt-0.5 p-1.5 bg-[var(--input-bg)] border border-[var(--border-dial)] rounded-lg text-xs text-[var(--text-app)] outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-[10px] uppercase font-semibold opacity-70">10. Core Values</label>
-                  <input 
-                    type="text" 
-                    value={profile.coreValues} 
-                    onChange={e => setProfile({...profile, coreValues: e.target.value})} 
-                    className="w-full mt-0.5 p-1.5 bg-[var(--input-bg)] border border-[var(--border-dial)] rounded-lg text-xs text-[var(--text-app)] outline-none"
-                  />
-                </div>
-
-                <button
-                  onClick={handleSaveProfile}
-                  className="w-full py-2 rounded-xl bg-[var(--text-app)] text-[var(--bg-app)] font-bold text-[11px] uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center space-x-1.5 mt-2"
-                >
-                  {savedSuccess ? (
-                    <>
-                      <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
-                      <span>Saved</span>
-                    </>
-                  ) : (
-                    <span>Save Profile</span>
-                  )}
-                </button>
               </div>
             )}
           </motion.div>

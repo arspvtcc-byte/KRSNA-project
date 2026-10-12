@@ -38,8 +38,7 @@ export default function App() {
       devId = `krsna-dev-${Math.random().toString(36).substring(2, 10)}`;
       localStorage.setItem('KRSNA_DEVICE_ID', devId);
     }
-    const approved = localStorage.getItem('KRSNA_APPROVED') === 'true';
-    return { deviceId: devId, approved };
+    return { deviceId: devId, approved: true };
   });
 
   useEffect(() => {
@@ -98,26 +97,7 @@ export default function App() {
     );
   }
 
-  if (!auth.approved) {
-    return (
-      <div className="w-screen h-screen flex flex-col items-center justify-center bg-[var(--bg-app)] p-6 text-center">
-        <ShieldAlert className="w-16 h-16 text-[#8B0000] mb-4" />
-        <h2 className="text-2xl font-black uppercase tracking-wider text-[var(--text-app)]">
-          NO PERMISSION
-        </h2>
-        <p className="text-xs text-[var(--text-app)] opacity-60 max-w-xs mt-2 font-mono">
-          Device ID: {auth.deviceId}
-        </p>
-        <button
-          onClick={handleAuthorizeDevice}
-          className="mt-8 px-6 py-2.5 rounded-xl bg-[var(--text-app)] text-[var(--bg-app)] text-xs font-bold uppercase tracking-widest flex items-center space-x-2 active:scale-95 transition-all"
-        >
-          <ShieldCheck className="w-4 h-4 text-[#8B0000]" />
-          <span>Authorize This Device</span>
-        </button>
-      </div>
-    );
-  }
+  
 
   return (
     <div className="relative w-screen h-screen overflow-hidden bg-[var(--bg-app)] text-[var(--text-app)] flex flex-col">
